@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Habits | 极光打卡</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #0071e3;
+            --secondary: #34c759;
+            --text: #1d1d1f;
+            --bg: #f5f5f7;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+        }
+        .dark-mode {
+            --text: #f5f5f7;
+            --bg: #1d1d1f;
+            --card-bg: rgba(29, 29, 31, 0.8);
+            --glass-bg: rgba(29, 29, 31, 0.6);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: all 0.5s ease;
+            background-image: 
+                radial-gradient(at 80% 20%, hsla(189, 100%, 56%, 0.1) 0px, transparent 50%),
+                radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 0.1) 0px, transparent 50%);
+        }
+        header {
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            padding: 15px 5%;
+            position: fixed;
+            width: 90%;
+            top: 20px;
+            left: 5%;
+            border-radius: 18px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        header:hover {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, #0071e3, #34c759);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0071e3, #34c759);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        main {
+            padding: 100px 5% 50px;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #0071e3, #34c759);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+        .habits-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        .habit-card {
+            backdrop-filter: blur(10px);
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            transform: scale(1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .habit-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        .habit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .habit-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        .habit-category {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            background: var(--primary);
+            color: white;
+        }
+        .habit-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+        }
+        .streak-count {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .check-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .check-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 113, 227, 0.3);
+        }
+        .check-btn.checked {
+            background: #888;
+        }
+        .calendar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 15px;
+        }
+        .calendar-day {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+        }
+        .calendar-day.checked {
+            background: var(--secondary);
+            color: white;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #ff2d55, #ff9500);
+            color: white;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            position: relative;
+        }
+        .tab.active {
+            color: var(--primary);
+        }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .stats-container {
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Neon Habits</div>
+        <div class="user-avatar" id="userAvatar">U</div>
+    </header>
+
+    <main>
+        <div class="hero">
+            <h1>养成你的极光习惯</h1>
+            <p class="subtitle">每天进步一点点，让改变如极光般绚烂绽放</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="habits">我的习惯</div>
+            <div class="tab" data-tab="stats">数据统计</div>
+            <div class="tab" data-tab="achievements">成就</div>
+        </div>
+
+        <div class="tab-content active" id="habits-tab">
+            <div class="habits-container" id="habitsContainer">
+                <!-- 习惯卡片将通过JS动态生成 -->
+            </div>
+            <button class="check-btn" style="margin-top: 30px;" id="addHabitBtn">+ 添加新习惯</button>
+        </div>
+
+        <div class="tab-content" id="stats-tab">
+            <div class="stats-container">
+                <h2>本周打卡趋势</h2>
+                <canvas id="weeklyChart"></canvas>
+            </div>
+            <div class="stats-container">
+                <h2>习惯分布</h2>
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="tab-content" id="achievements-tab">
+            <div class="stats-container">
+                <h2>已解锁成就</h2>
+                <div id="badgesContainer">
+                    <!-- 成就徽章将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 添加习惯模态框 -->
+    <div class="modal" id="addHabitModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">添加新习惯</h2>
+            <div class="form-group">
+                <label for="newHabitName">习惯名称</label>
+                <input type="text" id="newHabitName" placeholder="例如：晨跑30分钟">
+            </div>
+            <div class="form-group">
+                <label for="newHabitCategory">分类</label>
+                <select id="newHabitCategory">
+                    <option value="health">健康</option>
+                    <option value="study">学习</option>
+                    <option value="work">工作</option>
+                    <option value="life">生活</option>
+                </select>
+            </div>
+            <button class="check-btn" id="saveHabitBtn">保存习惯</button>
+        </div>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">欢迎回来</h2>
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" placeholder="输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="输入密码">
+            </div>
+            <button class="check-btn" id="loginBtn">登录</button>
+            <p style="text-align: center; margin-top: 15px; font-size: 0.9rem;">首次使用？直接输入用户名密码即可注册</p>
+        </div>
+    </div>
+
+    <script>
+        // 初始化数据
+        let currentUser = null;
+        let habits = [];
+        let achievements = [];
+
+        // DOM元素
+        const habitsContainer = document.getElementById('habitsContainer');
+        const addHabitBtn = document.getElementById('addHabitBtn');
+        const addHabitModal = document.getElementById('addHabitModal');
+        const loginModal = document.getElementById('loginModal');
+        const userAvatar = document.getElementById('userAvatar');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // 检测暗黑模式
+        function checkDarkMode() {
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.body.classList.toggle('dark-mode', isDark);
+        }
+
+        // 初始化
+        function init() {
+            checkDarkMode();
+            loadUserData();
+            setupEventListeners();
+            renderHabits();
+            renderCharts();
+            renderAchievements();
+        }
+
+        // 加载用户数据
+        function loadUserData() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = savedUser;
+                userAvatar.textContent = savedUser.charAt(0).toUpperCase();
+                
+                const savedHabits = localStorage.getItem(`habits_${savedUser}`);
+                if (savedHabits) habits = JSON.parse(savedHabits);
+                
+                const savedAchievements = localStorage.getItem(`achievements_${savedUser}`);
+                if (savedAchievements) achievements = JSON.parse(savedAchievements);
+            } else {
+                loginModal.classList.add('active');
+            }
+        }
+
+        // 保存数据
+        function saveData() {
+            if (!currentUser) return;
+            
+            localStorage.setItem(`habits_${currentUser}`, JSON.stringify(habits));
+            localStorage.setItem(`achievements_${currentUser}`, JSON.stringify(achievements));
+        }
+
+        // 渲染习惯卡片
+        function renderHabits() {
+            habitsContainer.innerHTML = '';
+            
+            habits.forEach((habit, index) => {
+                const today = new Date().toLocaleDateString();
+                const isChecked = habit.dates.includes(today);
+                const streak = calculateStreak(habit.dates);
+                
+                const card = document.createElement('div');
+                card.className = 'habit-card';
+                card.innerHTML = `
+                    <div class="habit-header">
+                        <div class="habit-name">${habit.name}</div>
+                        <div class="habit-category">${getCategoryName(habit.category)}</div>
+                    </div>
+                    <div class="habit-stats">
+                        <div>
+                            <div style="font-size: 0.9rem; opacity: 0.7;">坚持天数</div>
+                            <div class="streak-count">${habit.dates.length}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.9rem; opacity: 0.7;">当前连续</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary);">${streak}</div>
+                        </div>
+                    </div>
+                    <button class="check-btn ${isChecked ? 'checked' : ''}" data-index="${index}">
+                        ${isChecked ? '✓ 今日已打卡' : '点击打卡'}
+                    </button>
+                    <div class="calendar">
+                        ${generateCalendarDays(habit.dates)}
+                    </div>
+                `;
+                habitsContainer.appendChild(card);
+            });
+        }
+
+        // 计算连续打卡天数
+        function calculateStreak(dates) {
+            if (dates.length === 0) return 0;
+            
+            dates.sort((a, b) => new Date(b) - new Date(a));
+            let streak = 1;
+            const today = new Date();
+            let prevDate = new Date(dates[0]);
+            
+            // 检查今天是否已打卡
+            if (prevDate.toLocaleDateString() !== today.toLocaleDateString()) {
+                return 0;
+            }
+            
+            for (let i = 1; i < dates.length; i++) {
+                const currentDate = new Date(dates[i]);
+                const diffDays = Math.floor((prevDate - currentDate) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 1) {
+                    streak++;
+                    prevDate = currentDate;
+                } else if (diffDays > 1) {
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+
+        // 生成日历天数
+        function generateCalendarDays(dates) {
+            let html = '';
+            const today = new Date();
+            
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(today.getDate() - i);
+                const dateStr = date.toLocaleDateString();
+                
+                html += `<div class="calendar-day ${dates.includes(dateStr) ? 'checked' : ''}">${date.getDate()}</div>`;
+            }
+            
+            return html;
+        }
+
+        // 获取分类名称
+        function getCategoryName(category) {
+            const categories = {
+                'health': '健康',
+                'study': '学习',
+                'work': '工作',
+                'life': '生活'
+            };
+            return categories[category] || category;
+        }
+
+        // 渲染图表
+        function renderCharts() {
+            // 周打卡趋势图
+            const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+            new Chart(weeklyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    datasets: [{
+                        label: '打卡次数',
+                        data: [3, 5, 4, 6, 4, 2, 7],
+                        borderColor: 'rgba(0, 113, 227, 1)',
+                        backgroundColor: 'rgba(0, 113, 227, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // 分类分布图
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['健康', '学习', '工作', '生活'],
+                    datasets: [{
+                        data: [30, 25, 20, 25],
+                        backgroundColor: [
+                            'rgba(52, 199, 89, 0.8)',
+                            'rgba(0, 113, 227, 0.8)',
+                            'rgba(255, 149, 0, 0.8)',
+                            'rgba(175, 82, 222, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 渲染成就
+        function renderAchievements() {
+            const badgesContainer = document.getElementById('badgesContainer');
+            badgesContainer.innerHTML = '';
+            
+            const allAchievements = [
+                { id: 'first_check', name: '初出茅庐', desc: '完成第一次打卡' },
+                { id: 'three_day_streak', name: '小试牛刀', desc: '连续打卡3天' },
+                { id: 'week_streak', name: '持之以恒', desc: '连续打卡7天' },
+                { id: 'five_habits', name: '多面手', desc: '同时追踪5个习惯' }
+            ];
+            
+            allAchievements.forEach(ach => {
+                const unlocked = achievements.includes(ach.id);
+                const badge = document.createElement('div');
+                badge.className = 'badge';
+                badge.style.opacity = unlocked ? '1' : '0.3';
+                badge.style.background = unlocked ? 'linear-gradient(135deg, #ff2d55, #ff9500)' : '#ddd';
+                badge.title = unlocked ? ach.desc : '未解锁';
+                badge.textContent = unlocked ? ach.name : '???';
+                badgesContainer.appendChild(badge);
+            });
+        }
+
+        // 检查成就
+        function checkAchievements() {
+            const newAchievements = [...achievements];
+            
+            // 检查首次打卡成就
+            if (!newAchievements.includes('first_check') && habits.some(h => h.dates.length > 0)) {
+                newAchievements.push('first_check');
+            }
+            
+            // 检查3天连续打卡成就
+            if (!newAchievements.includes('three_day_streak')) {
+                const hasStreak = habits.some(h => calculateStreak(h.dates) >= 3);
+                if (hasStreak) newAchievements.push('three_day_streak');
+            }
+            
+            // 检查7天连续打卡成就
+            if (!newAchievements.includes('week_streak')) {
+                const hasStreak = habits.some(h => calculateStreak(h.dates) >= 7);
+                if (hasStreak) newAchievements.push('week_streak');
+            }
+            
+            // 检查5个习惯成就
+            if (!newAchievements.includes('five_habits') && habits.length >= 5) {
+                newAchievements.push('five_habits');
+            }
+            
+            // 如果有新成就，更新并显示通知
+            if (newAchievements.length > achievements.length) {
+                achievements = newAchievements;
+                saveData();
+                renderAchievements();
+                showAchievementNotification();
+            }
+        }
+
+        // 显示成就通知
+        function showAchievementNotification() {
+            const newAchievement = achievements[achievements.length - 1];
+            const notification = document.createElement('div');
+            notification.className = 'habit-card';
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '1000';
+            notification.style.animation = 'slideIn 0.5s ease-out';
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center;">
+                    <div style="font-size: 2rem; margin-right: 15px;">🎉</div>
+                    <div>
+                        <div style="font-weight: bold;">成就解锁！</div>
+                        <div>${getAchievementName(newAchievement)}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.5s ease-in';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+
+        // 获取成就名称
+        function getAchievementName(id) {
+            const allAchievements = {
+                'first_check': '初出茅庐 - 完成第一次打卡',
+                'three_day_streak': '小试牛刀 - 连续打卡3天',
+                'week_streak': '持之以恒 - 连续打卡7天',
+                'five_habits': '多面手 - 同时追踪5个习惯'
+            };
+            return allAchievements[id] || id;
+        }
+
+        // 设置事件监听
+        function setupEventListeners() {
+            // 暗黑模式监听
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkDarkMode);
+            
+            // 添加习惯按钮
+            addHabitBtn.addEventListener('click', () => {
+                addHabitModal.classList.add('active');
+            });
+            
+            // 保存习惯
+            document.getElementById('saveHabitBtn').addEventListener('click', () => {
+                const name = document.getElementById('newHabitName').value.trim();
+                const category = document.getElementById('newHabitCategory').value;
+                
+                if (name) {
+                    habits.push({
+                        name,
+                        category,
+                        dates: []
+                    });
+                    
+                    saveData();
+                    renderHabits();
+                    addHabitModal.classList.remove('active');
+                    document.getElementById('newHabitName').value = '';
+                }
+            });
+            
+            // 登录/注册
+            document.getElementById('loginBtn').addEventListener('click', () => {
+                const username = document.getElementById('username').value.trim();
+                if (username) {
+                    currentUser = username;
+                    localStorage.setItem('currentUser', currentUser);
+                    userAvatar.textContent = username.charAt(0).toUpperCase();
+                    loginModal.classList.remove('active');
+                    loadUserData();
+                    renderHabits();
+                }
+            });
+            
+            // 用户头像点击
+            userAvatar.addEventListener('click', () => {
+                if (confirm('确定要退出登录吗？')) {
+                    localStorage.removeItem('currentUser');
+                    currentUser = null;
+                    habits = [];
+                    loginModal.classList.add('active');
+                    renderHabits();
+                }
+            });
+            
+            // 习惯打卡
+            habitsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('check-btn')) {
+                    const index = e.target.dataset.index;
+                    const today = new Date().toLocaleDateString();
+                    const dateIndex = habits[index].dates.indexOf(today);
+                    
+                    if (dateIndex === -1) {
+                        habits[index].dates.push(today);
+                    } else {
+                        habits[index].dates.splice(dateIndex, 1);
+                    }
+                    
+                    saveData();
+                    renderHabits();
+                    checkAchievements();
+                }
+            });
+            
+            // 标签切换
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                    
+                    if (tab.dataset.tab === 'stats') {
+                        renderCharts();
+                    } else if (tab.dataset.tab === 'achievements') {
+                        renderAchievements();
+                    }
+                });
+            });
+            
+            // 关闭模态框
+            [addHabitModal, loginModal].forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>
